@@ -31,6 +31,7 @@ class Layer():
         self.w = np.random.randn(self.layer_dim, input_dim) * 0.01 # intializing weights with small random values
         self.b = np.zeros((self.layer_dim, 1))
         self.z_cache = np.zeros((self.layer_dim, 1)) # will be broadcasted based on no. of training examples per pass 
+        self.a_cache = np.zeros((self.layer_dim, 1))
         self.dw = np.zeros((self.layer_dim, self.input_dim))
         self.db = np.zeros((self.layer_dim, 1))
 
@@ -48,8 +49,9 @@ class Layer():
         # Assertion statements
         assert isinstance(input, np.ndarray), "Input to layer must be a numpy array!"
         assert input.shape[0] == self.input_dim, "Input dimensions do not match!"
-        assert self.activation in ["sigmoid", "relu", "tanh"], "Activation not supported!"
+        assert self.activation in ["sigmoid", "relu"], "Activation not supported!"
         # Forward prop
+        self.a_cache = self.a_cache * 0 + input
         self.z_cache = self.z_cache * 0 + np.dot(self.w, input) + self.b
         match self.activation:
             case "sigmoid":
@@ -69,7 +71,23 @@ class Layer():
             
             Computes the gradients of the weights and bias of given layer, returning the activation for prev layer in backprop
         """
-        pass
+        assert isinstance(dal, np.ndarray), "dAL has to be a numpy array!"
+        assert dal.shape[0] == self.w.shape[0], "Wrong dimensions for dAL!"
+        assert dal.shape[1] == self.z_cache.shape[1], "Check dimesions for z_cache!"
+        assert self.activation in ["sigmoid", "relu"], f"{self.activation} not yet implemented for back-prop!"
+        m = dal.shape[1]
+        match self.activation:
+            case "sigmoid":
+                dz = dal * (np.exp(-self.z_cache)/(1 + np.exp(-self.z_cache))**2)
+            case "relu":
+                dz = dal * (self.z_cache > 0).astype(int)
+        
+        self.dw = self.dw*0 + np.dot(dz, self.a_cache.T) / m
+        self.db = self.db*0 + np.sum(dz, axis=1, keepdims=True) / m
+        dalprev = np.dot(self.dw.T, dz)
+        return dalprev
+        
+
 
     
 
